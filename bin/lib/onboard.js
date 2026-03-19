@@ -1337,7 +1337,11 @@ async function preflight() {
         if (swapResult.ok && swapResult.swapCreated) {
           console.log("  ✓ Swap file created and activated");
         } else if (swapResult.ok) {
-          console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
+          if (swapResult.reason) {
+            console.log(`  ⓘ ${swapResult.reason} — existing swap should help prevent OOM`);
+          } else {
+            console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
+          }
         } else {
           console.log(`  ⚠ Could not create swap: ${swapResult.reason}`);
           console.log("  Sandbox creation may fail with OOM on low-memory systems.");

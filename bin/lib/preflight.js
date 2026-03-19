@@ -183,18 +183,21 @@ function ensureSwap(minTotalMB, opts) {
   if (!o.dryRun) {
     try {
       fs.accessSync("/swapfile");
-      return {
-        ok: true,
-        totalMB: mem.totalMB,
-        swapCreated: false,
-        reason: "/swapfile already exists",
-      };
+      const swaps = fs.readFileSync("/proc/swaps", "utf-8");
+      if (swaps.includes("/swapfile")) {
+        return {
+          ok: true,
+          totalMB: mem.totalMB,
+          swapCreated: false,
+          reason: "/swapfile already exists",
+        };
+      }
     } catch {
       // No swap file — proceed to create one
     }
   } else {
     // In dry-run mode, simulate the check
-    if (o.swapfileExists) {
+    if (o.swapfileExists && o.swapfileActive !== false) {
       return {
         ok: true,
         totalMB: mem.totalMB,
@@ -236,6 +239,14 @@ function ensureSwap(minTotalMB, opts) {
     );
     return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };
   } catch (err) {
+    // Attempt cleanup of partial state
+    try {
+      runCapture("sudo swapoff /swapfile 2>/dev/null || true", { ignoreError: true });
+      runCapture("sudo rm -f /swapfile", { ignoreError: true });
+    } catch {
+      // Best effort cleanup
+    }
+
     return {
       ok: false,
       reason: `swap creation failed: ${err.message}. Create swap manually:\n` +

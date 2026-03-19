@@ -407,7 +407,7 @@ remove_nemoclaw_swap() {
   sudo rm -f /swapfile
   # Clean fstab entry
   if grep -q '/swapfile' /etc/fstab 2>/dev/null; then
-    sudo sed -i '\|/swapfile none swap sw 0 0|d' /etc/fstab
+    sudo sed -i '\|^/swapfile[[:space:]]|d' /etc/fstab
     info "Removed /swapfile entry from /etc/fstab"
   fi
   info "Swap file removed"

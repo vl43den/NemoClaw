@@ -195,13 +195,19 @@ if [ "$(uname -s)" = "Linux" ]; then
   total_swap_mb=$(awk '/SwapTotal/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0)
   total_mb=$((total_ram_mb + total_swap_mb))
   if [ "$total_mb" -lt "$MIN_TOTAL_MB" ] && [ ! -f /swapfile ]; then
-    info "Low memory detected (${total_mb} MB). Creating 4 GB swap file..."
-    sudo fallocate -l 4G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
-    sudo swapon /swapfile
-    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-    info "Swap file created and activated"
+    # Bail if disk can't fit a 4 GB swap file
+    free_disk_kb=$(df / --output=avail -k 2>/dev/null | tail -1 | tr -d ' ')
+    if [ -n "$free_disk_kb" ] && [ "$free_disk_kb" -lt 5000000 ]; then
+      warn "Insufficient disk space ($((free_disk_kb / 1024)) MB free, need ~5 GB) to create swap file. Skipping."
+    else
+      info "Low memory detected (${total_mb} MB). Creating 4 GB swap file..."
+      sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
+      sudo chmod 600 /swapfile
+      sudo mkswap /swapfile
+      sudo swapon /swapfile
+      grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+      info "Swap file created and activated"
+    fi
   elif [ "$total_mb" -ge "$MIN_TOTAL_MB" ]; then
     info "Memory OK: ${total_ram_mb} MB RAM + ${total_swap_mb} MB swap"
   fi

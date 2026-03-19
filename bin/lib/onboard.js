@@ -328,19 +328,32 @@ async function preflight() {
     if (mem) {
       if (mem.totalMB < 12000) {
         console.log(`  ⚠ Low memory detected (${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap = ${mem.totalMB} MB total)`);
-        console.log("  Attempting to create 4 GB swap file to prevent OOM during sandbox build...");
-        const swapResult = ensureSwap(12000);
-        if (swapResult.ok && swapResult.swapCreated) {
-          console.log("  ✓ Swap file created and activated");
-        } else if (swapResult.ok) {
-          if (swapResult.reason) {
-            console.log(`  ⓘ ${swapResult.reason} — existing swap should help prevent OOM`);
-          } else {
-            console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
-          }
+
+        let proceedWithSwap = true;
+        if (!isNonInteractive()) {
+          const answer = await prompt(
+            "  Create a 4 GB swap file to prevent OOM during sandbox build? (requires sudo) [Y/n]: "
+          );
+          proceedWithSwap = !answer || answer.toLowerCase() !== "n";
+        }
+
+        if (!proceedWithSwap) {
+          console.log("  ⓘ Skipping swap creation. Sandbox build may fail with OOM on this system.");
         } else {
-          console.log(`  ⚠ Could not create swap: ${swapResult.reason}`);
-          console.log("  Sandbox creation may fail with OOM on low-memory systems.");
+          console.log("  Creating 4 GB swap file to prevent OOM during sandbox build...");
+          const swapResult = ensureSwap(12000);
+          if (swapResult.ok && swapResult.swapCreated) {
+            console.log("  ✓ Swap file created and activated");
+          } else if (swapResult.ok) {
+            if (swapResult.reason) {
+              console.log(`  ⓘ ${swapResult.reason} — existing swap should help prevent OOM`);
+            } else {
+              console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
+            }
+          } else {
+            console.log(`  ⚠ Could not create swap: ${swapResult.reason}`);
+            console.log("  Sandbox creation may fail with OOM on low-memory systems.");
+          }
         }
       } else {
         console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);

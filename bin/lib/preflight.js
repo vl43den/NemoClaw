@@ -151,12 +151,11 @@ function getMemoryInfo(opts) {
  * Ensure the system has enough memory (RAM + swap) for sandbox operations.
  *
  * If total memory is below minTotalMB and no swap file exists, attempts to
- * create a 4 GB swap file via sudo. This prevents OOM kills during sandbox
- * image push on low-memory VMs (e.g. 8 GB DigitalOcean droplets).
+ * create a 4 GB swap file via sudo to prevent OOM kills during sandbox image push.
  *
  * opts.memoryInfo — inject mock getMemoryInfo() result for testing
- * opts.platform  — override process.platform for testing
- * opts.dryRun    — if true, skip actual swap creation (for testing)
+ * opts.platform   — override process.platform for testing
+ * opts.dryRun     — if true, skip actual swap creation (for testing)
  *
  * Returns:
  *   { ok: true, totalMB, swapCreated: boolean }
@@ -205,18 +204,34 @@ function ensureSwap(minTotalMB, opts) {
     }
   }
 
+  // Bail if disk is too small for a 4 GB swap file
+  if (!o.dryRun) {
+    try {
+      const dfOut = runCapture("df / --output=avail -k 2>/dev/null | tail -1", { ignoreError: true });
+      const freeKB = parseInt((dfOut || "").trim(), 10);
+      if (!isNaN(freeKB) && freeKB < 5000000) {
+        return {
+          ok: false,
+          reason: `insufficient disk space (${Math.floor(freeKB / 1024)} MB free, need ~5 GB) to create swap file`,
+        };
+      }
+    } catch {
+      // df unavailable — let dd fail naturally if out of space
+    }
+  }
+
   if (o.dryRun) {
     return { ok: true, totalMB: mem.totalMB, swapCreated: true };
   }
 
   // Create 4 GB swap file
   try {
-    runCapture("sudo fallocate -l 4G /swapfile", { ignoreError: false });
+    runCapture("sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none", { ignoreError: false });
     runCapture("sudo chmod 600 /swapfile", { ignoreError: false });
     runCapture("sudo mkswap /swapfile", { ignoreError: false });
     runCapture("sudo swapon /swapfile", { ignoreError: false });
     runCapture(
-      "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab",
+      "grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab",
       { ignoreError: false }
     );
     return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };
@@ -224,7 +239,7 @@ function ensureSwap(minTotalMB, opts) {
     return {
       ok: false,
       reason: `swap creation failed: ${err.message}. Create swap manually:\n` +
-        "  sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && " +
+        "  sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none && sudo chmod 600 /swapfile && " +
         "sudo mkswap /swapfile && sudo swapon /swapfile",
     };
   }

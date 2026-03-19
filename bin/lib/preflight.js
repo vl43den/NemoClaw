@@ -181,7 +181,7 @@ function getMemoryInfo(opts) {
  */
 function ensureSwap(minTotalMB, opts) {
   const o = opts || {};
-  const threshold = minTotalMB || 6144;
+  const threshold = minTotalMB || 12000;
   const platform = o.platform || process.platform;
 
   if (platform !== "linux") {

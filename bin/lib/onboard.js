@@ -1330,10 +1330,10 @@ async function preflight() {
   if (process.platform === "linux") {
     const mem = getMemoryInfo();
     if (mem) {
-      if (mem.totalMB < 6144) {
+      if (mem.totalMB < 12000) {
         console.log(`  ⚠ Low memory detected (${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap = ${mem.totalMB} MB total)`);
         console.log("  Attempting to create 4 GB swap file to prevent OOM during sandbox build...");
-        const swapResult = ensureSwap(6144);
+        const swapResult = ensureSwap(12000);
         if (swapResult.ok && swapResult.swapCreated) {
           console.log("  ✓ Swap file created and activated");
         } else if (swapResult.ok) {

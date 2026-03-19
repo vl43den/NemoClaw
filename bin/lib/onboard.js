@@ -32,7 +32,7 @@ const { prompt, ensureApiKey, getCredential } = require("./credentials");
 const registry = require("./registry");
 const nim = require("./nim");
 const policies = require("./policies");
-const { checkPortAvailable } = require("./preflight");
+const { checkPortAvailable, ensureSwap, getMemoryInfo } = require("./preflight");
 const EXPERIMENTAL = process.env.NEMOCLAW_EXPERIMENTAL === "1";
 
 // Non-interactive mode: set by --non-interactive flag or env var.
@@ -320,6 +320,28 @@ async function preflight() {
     console.log("  ⓘ NIM requires NVIDIA GPU — will use cloud inference");
   } else {
     console.log("  ⓘ No GPU detected — will use cloud inference");
+  }
+
+  // Memory / swap check (Linux only)
+  if (process.platform === "linux") {
+    const mem = getMemoryInfo();
+    if (mem) {
+      if (mem.totalMB < 6144) {
+        console.log(`  ⚠ Low memory detected (${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap = ${mem.totalMB} MB total)`);
+        console.log("  Attempting to create 4 GB swap file to prevent OOM during sandbox build...");
+        const swapResult = ensureSwap(6144);
+        if (swapResult.ok && swapResult.swapCreated) {
+          console.log("  ✓ Swap file created and activated");
+        } else if (swapResult.ok) {
+          console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
+        } else {
+          console.log(`  ⚠ Could not create swap: ${swapResult.reason}`);
+          console.log("  Sandbox creation may fail with OOM on low-memory systems.");
+        }
+      } else {
+        console.log(`  ✓ Memory OK: ${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap`);
+      }
+    }
   }
 
   return gpu;

@@ -141,6 +141,22 @@ If neither is found, verify that Colima is running:
 $ colima status
 ```
 
+### Sandbox creation killed by OOM (exit 137)
+
+On VMs with 8 GB RAM or less and no swap configured (for example, a DigitalOcean Ubuntu 24.04 droplet), the sandbox image push can exhaust available memory and get killed by the Linux OOM killer (exit code 137).
+
+NemoClaw automatically detects low memory during onboarding and attempts to create a 4 GB swap file.
+If this automatic step fails or you are using a custom setup flow, create swap manually before running `nemoclaw onboard`:
+
+```console
+$ sudo fallocate -l 4G /swapfile
+$ sudo chmod 600 /swapfile
+$ sudo mkswap /swapfile
+$ sudo swapon /swapfile
+$ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+$ nemoclaw onboard
+```
+
 ## Runtime
 
 ### Reconnect after a host reboot

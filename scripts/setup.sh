@@ -188,7 +188,26 @@ fi
 info "Setting inference route to nvidia-nim / Nemotron 3 Super..."
 openshell inference set --no-verify --provider nvidia-nim --model nvidia/nemotron-3-super-120b-a12b >/dev/null 2>&1
 
-# 5. Build and create sandbox
+# 5. Swap check — prevent OOM during sandbox image push (Linux only)
+if [ "$(uname -s)" = "Linux" ]; then
+  MIN_TOTAL_MB=6144
+  total_ram_mb=$(awk '/MemTotal/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0)
+  total_swap_mb=$(awk '/SwapTotal/{printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo 0)
+  total_mb=$((total_ram_mb + total_swap_mb))
+  if [ "$total_mb" -lt "$MIN_TOTAL_MB" ] && [ ! -f /swapfile ]; then
+    info "Low memory detected (${total_mb} MB). Creating 4 GB swap file..."
+    sudo fallocate -l 4G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    info "Swap file created and activated"
+  elif [ "$total_mb" -ge "$MIN_TOTAL_MB" ]; then
+    info "Memory OK: ${total_ram_mb} MB RAM + ${total_swap_mb} MB swap"
+  fi
+fi
+
+# 6. Build and create sandbox
 info "Deleting old ${SANDBOX_NAME} sandbox (if any)..."
 openshell sandbox delete "$SANDBOX_NAME" >/dev/null 2>&1 || true
 

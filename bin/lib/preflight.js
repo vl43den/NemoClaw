@@ -254,6 +254,19 @@ function ensureSwap(minTotalMB, opts) {
       "grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab",
       { ignoreError: false }
     );
+
+    const path = require("path");
+    const os = require("os");
+    const nemoclawDir = path.join(os.homedir(), ".nemoclaw");
+    if (!fs.existsSync(nemoclawDir)) {
+      runCapture(`mkdir -p ${nemoclawDir}`, { ignoreError: true });
+    }
+    try {
+      fs.writeFileSync(path.join(nemoclawDir, "managed_swap"), "/swapfile");
+    } catch {
+      // Best effort marker write
+    }
+
     return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };
   } catch (err) {
     // Attempt cleanup of partial state

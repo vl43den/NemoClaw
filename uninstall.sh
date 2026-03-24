@@ -389,16 +389,15 @@ remove_nemoclaw_swap() {
     return 0
   fi
 
-  # Only touch the swap file if NemoClaw can prove it created it
   if [ ! -f "$NEMOCLAW_STATE_DIR/managed_swap" ]; then
-    warn "No NemoClaw-managed swap marker found — skipping swap cleanup."
+    warn "No NemoClaw-managed swap marker found, skipping swap cleanup."
     return 0
   fi
 
   local swap_file
   swap_file=$(cat "$NEMOCLAW_STATE_DIR/managed_swap" 2>/dev/null || echo "")
   if [ "$swap_file" != "/swapfile" ]; then
-    warn "Marker file does not point to /swapfile — skipping swap cleanup."
+    warn "Marker file does not point to /swapfile, skipping swap cleanup."
     return 0
   fi
 
@@ -464,6 +463,9 @@ main() {
   info "Removing global nemoclaw install..."
   remove_nemoclaw_cli
 
+  info "Removing NemoClaw-managed swap file..."
+  remove_nemoclaw_swap
+
   info "Removing NemoClaw state..."
   remove_nemoclaw_state
 
@@ -478,9 +480,6 @@ main() {
 
   info "Removing optional Ollama models..."
   remove_optional_ollama_models
-
-  info "Removing NemoClaw-managed swap file..."
-  remove_nemoclaw_swap
 
   info "Removing runtime temp artifacts..."
   remove_runtime_temp_artifacts

@@ -247,7 +247,6 @@ function ensureSwap(minTotalMB, opts) {
     try {
       fs.writeFileSync(path.join(nemoclawDir, "managed_swap"), "/swapfile");
     } catch {
-      // Best effort marker write
     }
 
     return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };

@@ -329,12 +329,12 @@ async function preflight() {
       if (mem.totalMB < 12000) {
         console.log(`  ⚠ Low memory detected (${mem.totalRamMB} MB RAM + ${mem.totalSwapMB} MB swap = ${mem.totalMB} MB total)`);
 
-        let proceedWithSwap = true;
+        let proceedWithSwap = false;
         if (!isNonInteractive()) {
           const answer = await prompt(
-            "  Create a 4 GB swap file to prevent OOM during sandbox build? (requires sudo) [Y/n]: "
+            "  Create a 4 GB swap file to prevent OOM during sandbox build? (requires sudo) [y/N]: "
           );
-          proceedWithSwap = !answer || answer.toLowerCase() !== "n";
+          proceedWithSwap = answer && answer.toLowerCase().startsWith("y");
         }
 
         if (!proceedWithSwap) {

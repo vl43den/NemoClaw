@@ -173,13 +173,9 @@ if [ "$(uname -s)" = "Linux" ]; then
     if [ -n "$free_disk_kb" ] && [ "$free_disk_kb" -lt 5000000 ]; then
       warn "Insufficient disk space ($((free_disk_kb / 1024)) MB free, need ~5 GB) to create swap file. Skipping."
     else
-      info "Low memory detected (${total_mb} MB). Creating 4 GB swap file..."
-      sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none
-      sudo chmod 600 /swapfile
-      sudo mkswap /swapfile
-      sudo swapon /swapfile
-      grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-      info "Swap file created and activated"
+      warn "Low memory detected (${total_mb} MB). Sandbox creation may fail with OOM."
+      warn "Consider manually creating a swap file:"
+      warn "  sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=none && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile"
     fi
   elif [ "$total_mb" -ge "$MIN_TOTAL_MB" ]; then
     info "Memory OK: ${total_ram_mb} MB RAM + ${total_swap_mb} MB swap"

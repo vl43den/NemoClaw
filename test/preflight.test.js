@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it } from "vitest";
+import { assert, describe, expect, it } from "vitest";
 
 import { checkPortAvailable } from "../bin/lib/preflight";
 
@@ -205,11 +205,19 @@ describe("ensureSwap", () => {
   });
 
   it("returns error when memory info is unavailable", () => {
-    const result = ensureSwap(6144, {
-      platform: "linux",
-      memoryInfo: null,
-    });
-    assert.equal(result.ok, false);
-    assert.match(result.reason, /could not read memory info/);
+    const preflight = require("../bin/lib/preflight");
+    const originalGetMemoryInfo = preflight.getMemoryInfo;
+    preflight.getMemoryInfo = () => null;
+
+    try {
+      const result = preflight.ensureSwap(6144, {
+        platform: "linux",
+        memoryInfo: null,
+      });
+      assert.equal(result.ok, false);
+      assert.match(result.reason, /could not read memory info/);
+    } finally {
+      preflight.getMemoryInfo = originalGetMemoryInfo;
+    }
   });
 });

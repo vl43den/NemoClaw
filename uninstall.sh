@@ -517,6 +517,12 @@ remove_nemoclaw_swap() {
   info "Deactivating and removing /swapfile..."
   sudo swapoff /swapfile 2>/dev/null || true
   sudo rm -f /swapfile
+
+  if [ -f /swapfile ]; then
+    warn "Failed to remove /swapfile. Please remove it manually."
+    return 1
+  fi
+
   # Clean fstab entry
   if grep -q '/swapfile' /etc/fstab 2>/dev/null; then
     sudo sed -i '\|^/swapfile[[:space:]]|d' /etc/fstab

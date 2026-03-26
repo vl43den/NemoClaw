@@ -5,6 +5,8 @@
 
 const fs = require("fs");
 const net = require("net");
+const os = require("os");
+const path = require("path");
 const { runCapture } = require("./runner");
 
 async function probePortAvailability(port, opts = {}) {
@@ -255,8 +257,6 @@ function ensureSwap(minTotalMB, opts) {
       { ignoreError: false }
     );
 
-    const path = require("path");
-    const os = require("os");
     const nemoclawDir = path.join(os.homedir(), ".nemoclaw");
     if (!fs.existsSync(nemoclawDir)) {
       runCapture(`mkdir -p ${nemoclawDir}`, { ignoreError: true });

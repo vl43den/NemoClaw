@@ -180,16 +180,24 @@ function getMemoryInfo(opts) {
  *   { ok: true, totalMB, swapCreated: boolean }
  *   { ok: false, reason: string }
  */
-function ensureSwap(minTotalMB, opts) {
-  const o = opts || {};
-  const threshold = minTotalMB || 12000;
-  const platform = o.platform || process.platform;
+function ensureSwap(minTotalMB, opts = {}) {
+  const o = {
+    platform: process.platform,
+    memoryInfo: null,
+    swapfileExists: fs.existsSync("/swapfile"),
+    dryRun: false,
+    interactive: process.stdout.isTTY && !process.env.NEMOCLAW_NON_INTERACTIVE,
+    getMemoryInfoImpl: getMemoryInfo,
+    ...opts,
+  };
+  const threshold = minTotalMB ?? 12000;
+  const platform = o.platform;
 
   if (platform !== "linux") {
-    return { ok: true, reason: "swap management only supported on Linux", swapCreated: false };
+    return { ok: true, totalMB: 0, swapCreated: false };
   }
 
-  const mem = o.memoryInfo || getMemoryInfo({ platform });
+  const mem = o.memoryInfo ?? o.getMemoryInfoImpl({ platform });
   if (!mem) {
     return { ok: false, reason: "could not read memory info" };
   }
@@ -198,12 +206,27 @@ function ensureSwap(minTotalMB, opts) {
     return { ok: true, totalMB: mem.totalMB, swapCreated: false };
   }
 
-  // Check if swap file already exists
   if (!o.dryRun) {
-    try {
-      fs.accessSync("/swapfile");
-      const swaps = fs.readFileSync("/proc/swaps", "utf-8");
+    const swapfileExists = (() => {
+      try {
+        fs.accessSync("/swapfile");
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (swapfileExists) {
+      const swaps = (() => {
+        try {
+          return fs.readFileSync("/proc/swaps", "utf-8");
+        } catch {
+          return "";
+        }
+      })();
+
       if (swaps.includes("/swapfile")) {
+        // Active swap — nothing to do
         return {
           ok: true,
           totalMB: mem.totalMB,
@@ -211,12 +234,21 @@ function ensureSwap(minTotalMB, opts) {
           reason: "/swapfile already exists",
         };
       }
-    } catch {
-      // No swap file — proceed to create one
+      // File exists but isn't active — re-activate rather than overwrite
+      try {
+        runCapture("sudo swapon /swapfile", { ignoreError: false });
+        return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };
+      } catch (err) {
+        return {
+          ok: false,
+          reason: `found orphaned /swapfile but could not activate it: ${err.message}`,
+        };
+      }
     }
+    // No swapfile at all — fall through to creation
   } else {
     // In dry-run mode, simulate the check
-    if (o.swapfileExists && o.swapfileActive !== false) {
+    if (o.swapfileExists) {
       return {
         ok: true,
         totalMB: mem.totalMB,

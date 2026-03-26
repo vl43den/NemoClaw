@@ -205,19 +205,12 @@ describe("ensureSwap", () => {
   });
 
   it("returns error when memory info is unavailable", () => {
-    const preflight = require("../bin/lib/preflight");
-    const originalGetMemoryInfo = preflight.getMemoryInfo;
-    preflight.getMemoryInfo = () => null;
-
-    try {
-      const result = preflight.ensureSwap(6144, {
-        platform: "linux",
-        memoryInfo: null,
-      });
-      assert.equal(result.ok, false);
-      assert.match(result.reason, /could not read memory info/);
-    } finally {
-      preflight.getMemoryInfo = originalGetMemoryInfo;
-    }
+    const result = ensureSwap(6144, {
+      platform: "linux",
+      memoryInfo: null,
+      getMemoryInfoImpl: () => null,
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.reason, /could not read memory info/);
   });
 });

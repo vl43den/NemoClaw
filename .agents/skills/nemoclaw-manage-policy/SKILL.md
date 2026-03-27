@@ -114,13 +114,14 @@ Dynamic changes apply a policy update to a running sandbox without restarting it
 
 Create a YAML file with the endpoints to add.
 Follow the same format as the baseline policy in `nemoclaw-blueprint/policies/openclaw-sandbox.yaml`.
+The file must include the mandatory `version` field (e.g., `version: 1`) to be accepted by the OpenShell parser.
 
 ### Apply the Policy
 
 Use the OpenShell CLI to apply the policy update:
 
 ```console
-$ openshell policy set <policy-file>
+$ openshell policy set --policy <policy-file> <name>
 ```
 
 The change takes effect immediately.
@@ -150,13 +151,28 @@ Available presets:
 | `slack` | Slack API and webhooks |
 | `telegram` | Telegram Bot API |
 
-To apply a preset to a running sandbox, pass it as a policy file:
+To apply a preset to a running sandbox:
 
 ```console
-$ openshell policy set nemoclaw-blueprint/policies/presets/pypi.yaml
+$ nemoclaw <name> policy-add <preset>
+```
+
+For example, to add PyPI access to a running sandbox:
+
+```console
+$ nemoclaw my-assistant policy-add pypi
+```
+
+To list which presets are applied to a sandbox:
+
+```console
+$ nemoclaw <name> policy-list
 ```
 
 To include a preset in the baseline, merge its entries into `openclaw-sandbox.yaml` and re-run `nemoclaw onboard`.
+
+> **Note:** The `openshell policy set --policy <file> <name>` command operates on raw policy files and does not accept the `preset:` metadata block used in preset YAML files.
+> Use `nemoclaw <name> policy-add` for presets.
 
 ## Related Skills
 

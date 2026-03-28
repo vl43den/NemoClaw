@@ -115,10 +115,10 @@ Available presets:
 To apply a preset to a running sandbox:
 
 ```console
-$ nemoclaw <name> policy-add <preset>
+$ nemoclaw <name> policy-add
 ```
 
-For example, to add PyPI access to a running sandbox:
+For example, to add PyPI access to a running sandbox, run the command and select 'pypi' at the prompt:
 
 ```console
 $ nemoclaw my-assistant policy-add pypi

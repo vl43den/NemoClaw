@@ -33,6 +33,10 @@ function listPresets() {
 }
 
 function loadPreset(name) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+    console.error(`  Invalid preset name: ${name}`);
+    return null;
+  }
   const file = path.resolve(PRESETS_DIR, `${name}.yaml`);
   if (!file.startsWith(PRESETS_DIR + path.sep) && file !== PRESETS_DIR) {
     console.error(`  Invalid preset name: ${name}`);

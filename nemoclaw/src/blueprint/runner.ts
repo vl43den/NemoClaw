@@ -375,7 +375,10 @@ export function actionStatus(rid?: string): void {
   } else {
     let runs: string[];
     try {
-      runs = readdirSync(runsDir).sort().reverse();
+      runs = readdirSync(runsDir)
+        .filter((f) => /^[a-zA-Z0-9_-]+$/.test(f))
+        .sort()
+        .reverse();
     } catch {
       log("No runs found.");
       return;
@@ -384,7 +387,7 @@ export function actionStatus(rid?: string): void {
       log("No runs found.");
       return;
     }
-    runDir = join(runsDir, runs[0]);
+    runDir = safeRunDir(runsDir, runs[0]);
   }
 
   try {

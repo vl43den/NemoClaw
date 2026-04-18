@@ -761,7 +761,7 @@ export function ensureSwap(minTotalMB?: number, opts: EnsureSwapOpts = {}): Swap
         reason: "/swapfile already exists",
       };
     }
-    return { ok: true, totalMB: mem.totalMB, swapCreated: true };
+    return { ok: true, totalMB: mem.totalMB + 4096, swapCreated: true };
   }
 
   const existingSwapResult = getExistingSwapResult(mem);
